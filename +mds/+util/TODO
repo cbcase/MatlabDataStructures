@@ -1,0 +1,3 @@
+- Check that wordtype behaves as expected on 64 bit
+- Consider switching to 32 bit only for the ints
+- Consider I/F for 5 hash vals, using all return bits of the sha hash
