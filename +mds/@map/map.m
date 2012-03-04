@@ -5,14 +5,17 @@ classdef map < handle
     % hash function for it (probably a static method of the class). If not,
     % then this map can hash any built in Matlab type.
     
+    properties (Constant)
+        DefaultNumBuckets = 100;
+    end
+    
     properties
         defaultSHAHasher % util.SHAHasher. Might be empty if not needed.
         hashFn % Function handle key -> 20x1 int8 array.
+        buckets
     end
     
     methods
-        % TODO: it should be possible to define a UniformValue map so that
-        % each bucket is an array rather than a linked list
         function m = map(hashFn)
             if (nargin == 0)
                 m.defaultSHAHasher = mds.util.SHAHasher;
@@ -20,6 +23,7 @@ classdef map < handle
             else
                 m.hashFn = hashFn;
             end
+            m.buckets = cell(m.DefaultNumBuckets, 1);
         end
         
         % Dispatches a get() from indexing.
@@ -41,22 +45,43 @@ classdef map < handle
         % subsref. Might make public, but only if it can provide
         % meaningfully different semantics.
         function v = get(this, key)
-            fprintf('Getting key:\n');
-            disp(key);
-            % TODO: implement
-            v=0;
+            b = this.bucketForKey(key);
+            v = this.findInBucket(b, key);
         end
         
         function set(this, key, val)
-            fprintf('Setting key:\n');
-            disp(key);
-            fprintf('To val:\n');
-            disp(val);
-            % TODO: implement
+            b = this.bucketForKey(key);
+            [~, idx] = this.findInBucket(b, key);
+            if (idx > 0)
+                this.buckets{b}(idx).val = val;
+            else
+                % Insert new record
+                rec = struct('key', key, 'val', val);
+                this.buckets{b} = [this.buckets{b} rec];
+            end
+            
+        end
+        
+        function [val, idx] = findInBucket(this, b, key)
+            bucket = this.buckets{b};
+            for i = 1:length(bucket)
+                if (isequal(key, bucket.key))
+                    val = bucket.val;
+                    idx = i;
+                    return;
+                end
+            end
+            val = [];
+            idx = 0;
+        end       
+        
+        function b = bucketForKey(this, key)
+            k = length(this.buckets);
+            b = mod(this.hashFn(key), k);
         end
     end
     
-    methods (Access = protected, Static = true)        
+    methods (Access = protected, Static = true)
         % Check that an indexing expression is valid: only one key, using
         % parens.
         function checkSubs(I)
