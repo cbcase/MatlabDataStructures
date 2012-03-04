@@ -1,4 +1,5 @@
 - Test out Rehash()
+- keyset / valset / iterator?
 - profile
 - don't just horzcat to add new elem to bucket
 - consider a uniform key and val constructor that lets each bucket be
