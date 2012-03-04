@@ -1,4 +1,5 @@
-- resize on high load factor
+- Test out Rehash()
+- profile
 - don't just horzcat to add new elem to bucket
 - consider a uniform key and val constructor that lets each bucket be
   just two flat arrays
