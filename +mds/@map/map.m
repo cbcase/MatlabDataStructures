@@ -15,7 +15,7 @@ classdef map < handle
         % each bucket is an array rather than a linked list
         function m = map(hashFn)
             if (nargin == 0)
-                m.defaultSHAHasher = util.SHAHasher;
+                m.defaultSHAHasher = mds.util.SHAHasher;
                 m.hashFn = @(obj) m.defaultSHAHasher.hash(obj);
             else
                 m.hashFn = hashFn;

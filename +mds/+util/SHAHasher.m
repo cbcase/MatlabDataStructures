@@ -5,6 +5,7 @@ classdef SHAHasher < handle
     
     properties
         jmd % java.security.MessageDigest instance
+        wordtype % Either 'uint32' or 'uint64'.
     end
     
     % Public methods: constructor and hash
@@ -16,10 +17,18 @@ classdef SHAHasher < handle
             catch ex
                 error('Java exception: %s', ex.message);
             end
+            
+            % Check the output of `computer`
+            c = computer;
+            if (strcmp(c(end-1:end), '64'))
+                hasher.wordtype = 'uint64';
+            else
+                hasher.wordtype = 'uint32';
+            end
         end
         
-        % Public hash function
-        function byteArr = hash(this, obj)
+        % Hash to raw 160 byte array.
+        function byteArr = hashToBytes(this, obj)
             if (isnumeric(obj) || islogical(obj))
                 byteArr = hashArray(this, obj(:));
             elseif (ischar(obj))
@@ -36,10 +45,18 @@ classdef SHAHasher < handle
                 error ('Can''t hash input with class %s.', class(obj));
             end
         end
+        
+        % Hash to machine word size integer.
+        function val = hash(this, obj)
+            val = this.intFromBytes(this.hashToBytes(obj));
+        end
+    end
+    
+    methods (Access = public, Static = true)
     end
     
     % Protected methods: particular hash definitions. Note that many
-    % recursively call back to `hash` above.
+    % recursively call back to `hashToBytes` above.
     methods (Access = protected)
         % We hash an array by directly digesting it.
         function byteArr = hashArray(this, arr)
@@ -53,7 +70,7 @@ classdef SHAHasher < handle
             n = length(fields);
             hashes = cell(n, 1);
             for i = 1:n
-                hashes{i} = hash(this, s.(fields{i}));
+                hashes{i} = hashToBytes(this, s.(fields{i}));
             end
             byteArr = hashArray(this, vertcat(hashes{:}));
         end
@@ -76,9 +93,16 @@ classdef SHAHasher < handle
             n = length(c);
             hashes = cell(n, 1);
             for i = 1:n
-                hashes{i} = hash(this, c{i});
+                hashes{i} = hashToBytes(this, c{i});
             end
             byteArr = hashArray(this, vertcat(hashes{:}));            
+        end
+        
+        % Takes the first 32 / 64 bits of byte array and converts to uint32
+        % or uint64, depending on your machine's word size.
+        function val = intFromBytes(this, bytes)
+            intRep = typecast(bytes(1:8), this.wordtype);
+            val = intRep(1);
         end
     end
     
